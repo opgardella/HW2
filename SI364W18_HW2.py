@@ -20,6 +20,9 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, RadioField, ValidationError
 from wtforms.validators import Required
 
+import requests #added
+import json #added
+
 #####################
 ##### APP SETUP #####
 #####################
@@ -31,7 +34,12 @@ app.config['SECRET_KEY'] = 'hardtoguessstring'
 ###### FORMS #######
 ####################
 
-
+# #create class to represent WTForm that inherits flask form
+# class ArtistForm(FlaskForm):
+#     artist = StringField('What is the artist name?', validators=[Required()])
+#     num_results = IntegerField('How many results do you want to see?', validators=[Required()])
+#     email = StringField('What is your email?', validators=[Required(),Email()])
+#     submit = SubmitField('Submit')
 
 
 ####################
@@ -48,25 +56,60 @@ def hello_world():
 def hello_user(name):
     return '<h1>Hello {0}<h1>'.format(name)
 
-#
-@app.route('/artist_info')
-def artist_info:
-    pass
-
-#
-@app.route('/artist_links')
-def artist_links:
-    pass
-
-#
+# route for form in artistform.html
 @app.route('/artistform')
-def artistform:
-    pass
+def artistform():
+    # simpleForm = ArtistForm()
+    return render_template('artistform.html')
+    # return render_template('artistform.html', form=simpleForm)
 
-#
-@app.route('/specific_artist')
-def specific_artist:
-    pass
+# route for once form is sumbitted, uses artist_info.html, need to use itunes api
+@app.route('/artistinfo', methods = ['GET', 'POST'])
+def artist_info():
+    base_url = 'https://itunes.apple.com/search'
+    params_diction = {}
+    params_diction['term'] = form.request
+    # params_diction['entity'] = 'musicArtist'
+    response = requests.get(base_url, params = params_diction)
+    text = response.text
+    python_obj = json.loads(text)
+    return str(python_obj)
+
+    # base_url = "https://itunes.apple.com/search"
+    # params_diction = {}
+    # params_diction['term'] = movie
+    # params_diction['entity'] = 'movie'
+    # resp = requests.get(base_url,params=params_diction)
+    # text = resp.text
+    # python_obj = json.loads(text)
+    # return str(python_obj)
+
+    # form = ArtistForm(request.form)
+    # params_diction = {}
+    # if request.method == 'POST' and form.validate_on_submit():
+    #     params_diction['term'] = form.artist.data
+    #     params_diction['limit'] = form.num_results.data #basically request.args.get('num_results')
+    #     email = form.email.data
+    #     response = requests.get('https://itunes.apple.com/search', params = params_diction)
+    #     response_text = json.loads(response.text)
+    #     result_py = response_text['results']
+    #     return render_template('itunes-results.html', result__html = result_py)
+    # flash('All fields are required!')
+    # return redirect(url_for('itunes_form')) #this redirects you to itunes_form if there are errors
+
+
+# route to artist_links
+@app.route('/artistlinks')
+def artist_links():
+    return render_template('artist_links.html')
+
+
+
+
+# #
+# @app.route('/specific_artist')
+# def specific_artist():
+#     pass
 
 
 
