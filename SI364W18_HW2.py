@@ -3,6 +3,8 @@
 ## HW 2 - Part 1
 ## Olivia Gardella
 
+## Worked with: Emma Welch
+
 ## This homework has 3 parts, all of which should be completed inside this file (and a little bit
 ## inside the /templates directory).
 
@@ -15,7 +17,7 @@
 #############################
 ##### IMPORT STATEMENTS #####
 #############################
-from flask import Flask, request, render_template, url_for
+from flask import Flask, request, render_template, url_for, flash, redirect
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, RadioField, ValidationError
 from wtforms.validators import Required
@@ -34,13 +36,10 @@ app.config['SECRET_KEY'] = 'hardtoguessstring'
 ###### FORMS #######
 ####################
 
-# #create class to represent WTForm that inherits flask form
-# class ArtistForm(FlaskForm):
-#     artist = StringField('What is the artist name?', validators=[Required()])
-#     num_results = IntegerField('How many results do you want to see?', validators=[Required()])
-#     email = StringField('What is your email?', validators=[Required(),Email()])
-#     submit = SubmitField('Submit')
-
+class AlbumEntryForm(FlaskForm):
+    album_name = StringField('Enter the name of an album:', validators=[Required()])
+    rating = RadioField('How much do you like this album? (1 low, 3 high)', choices = [('1','1'),('2','2'),('3','3')], validators=[Required()])
+    submit = SubmitField('Submit')
 
 ####################
 ###### ROUTES ######
@@ -56,63 +55,73 @@ def hello_world():
 def hello_user(name):
     return '<h1>Hello {0}<h1>'.format(name)
 
+
+#### Part 1 ####
+
+### DONE
 # route for form in artistform.html
 @app.route('/artistform')
 def artistform():
-    # simpleForm = ArtistForm()
     return render_template('artistform.html')
-    # return render_template('artistform.html', form=simpleForm)
 
+### DONE
 # route for once form is sumbitted, uses artist_info.html, need to use itunes api
-@app.route('/artistinfo', methods = ['GET', 'POST'])
+@app.route('/artistinfo', methods = ['GET'])
 def artist_info():
-    base_url = 'https://itunes.apple.com/search'
-    params_diction = {}
-    params_diction['term'] = form.request
-    # params_diction['entity'] = 'musicArtist'
-    response = requests.get(base_url, params = params_diction)
-    text = response.text
-    python_obj = json.loads(text)
-    return str(python_obj)
+    if request.method == 'GET':
+        base_url = 'https://itunes.apple.com/search?'
+        params_diction = {}
+        params_diction['term'] = request.args.get('artist')
+        response = requests.get(base_url, params = params_diction)
+        response_text = json.loads(response.text)
+        response_py = response_text['results']
+        return render_template('artist_info.html', objects = response_py)
+    flash('Must enter an artist')
+    return redirect(url_for('albumform'))
 
-    # base_url = "https://itunes.apple.com/search"
-    # params_diction = {}
-    # params_diction['term'] = movie
-    # params_diction['entity'] = 'movie'
-    # resp = requests.get(base_url,params=params_diction)
-    # text = resp.text
-    # python_obj = json.loads(text)
-    # return str(python_obj)
-
-    # form = ArtistForm(request.form)
-    # params_diction = {}
-    # if request.method == 'POST' and form.validate_on_submit():
-    #     params_diction['term'] = form.artist.data
-    #     params_diction['limit'] = form.num_results.data #basically request.args.get('num_results')
-    #     email = form.email.data
-    #     response = requests.get('https://itunes.apple.com/search', params = params_diction)
-    #     response_text = json.loads(response.text)
-    #     result_py = response_text['results']
-    #     return render_template('itunes-results.html', result__html = result_py)
-    # flash('All fields are required!')
-    # return redirect(url_for('itunes_form')) #this redirects you to itunes_form if there are errors
-
-
+### DONE
 # route to artist_links
 @app.route('/artistlinks')
 def artist_links():
     return render_template('artist_links.html')
 
+### DONE
+# route for spcific_artist.html
+@app.route('/specific/song/<artist_name>')
+def specific_song(artist_name):
+    base_url = 'https://itunes.apple.com/search'
+    params_diction = {}
+    params_diction['term'] = artist_name
+    response = requests.get(base_url, params = params_diction)
+    text = response.text
+    python_obj = json.loads(text)
+    result_py = python_obj['results']
+    return render_template('specific_artist.html', results = result_py)
 
 
+#### Parts 2+3 ####
 
-# #
-# @app.route('/specific_artist')
-# def specific_artist():
-#     pass
+### DONE
+# route for album_entry.html
+@app.route('/album_entry')
+def album_entry():
+    # return ('hi')
+    form = AlbumEntryForm()
+    return render_template('album_entry.html', form=form)
+
+### DONE
+# route for album_data.html
+@app.route('/album_result', methods=['GET','POST'])
+def album_result():
+    form = AlbumEntryForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        album = form.album_name.data
+        rating = form.rating.data
+        return render_template('album_data.html', album=album, rating=rating)
+    flash('Must enter all fields')
+    return redirect(url_for('album_entry'))
 
 
-
-
+# must keep at end
 if __name__ == '__main__':
     app.run(use_reloader=True,debug=True)
